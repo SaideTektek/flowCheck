@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowCheck - İşveren Paneli</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="#" class="navbar-brand"><i class="fas fa-water"></i> FlowCheck</a>
+        <div class="navbar-user">
+            <span id="userName" style="font-weight: 500;">Yükleniyor...</span>
+            <button id="profileBtn" class="btn btn-primary" style="padding: 0.5rem 1rem;"><i class="fas fa-user-circle"></i> Profil</button>
+            <button id="logoutBtn" class="btn btn-danger" style="padding: 0.5rem 1rem;"><i class="fas fa-sign-out-alt"></i> Çıkış</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Dashboard Top Stats -->
+        <div class="dashboard-grid" style="margin-top: 0; margin-bottom: 2rem;">
+            <div class="glass-panel card">
+                <h3>Aylık Toplam Ödeme</h3>
+                <h1 id="totalPaid" style="color: var(--success-color); font-size: 2rem; margin-top: 0.5rem;">0 ₺</h1>
+            </div>
+            <div class="glass-panel card">
+                <h3>Onay Bekleyen İşler</h3>
+                <h1 id="pendingReviewCount" style="color: var(--warning-color); font-size: 2rem; margin-top: 0.5rem;">0</h1>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Create Job Form -->
+            <div class="glass-panel" style="align-self: start;">
+                <h2><i class="fas fa-plus-circle"></i> Yeni İş Oluştur</h2>
+                <form id="createJobForm">
+                    <div class="form-group">
+                        <label>Başlık</label>
+                        <input type="text" id="jobTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Atanacak İşçi</label>
+                        <select id="freelancerSelect" class="form-control" required>
+                            <!-- Doldurulacak -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <textarea id="jobDesc" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>GitHub Repo URL</label>
+                        <input type="url" id="githubRepo" class="form-control" placeholder="https://github.com/..." required>
+                    </div>
+                    <div class="form-group">
+                        <label>Miktar (₺)</label>
+                        <input type="number" id="jobPrice" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teslim Tarihi</label>
+                        <input type="date" id="jobDueDate" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Görevi Ata</button>
+                </form>
+            </div>
+
+            <!-- Jobs List -->
+            <div class="glass-panel">
+                <h2><i class="fas fa-tasks"></i> Verdiğim İşler</h2>
+                <div id="jobsContainer" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                    <!-- İşler buraya gelecek -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Template for Reviewing -->
+    <div id="reviewModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="glass-panel" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <h2 id="modalTitle">İş Onayı</h2>
+            
+            <div style="margin-top: 1.5rem; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+                <h4 style="margin-bottom: 0.5rem;"><i class="fab fa-github"></i> GitHub Commit Logları</h4>
+                <ul id="commitLogList" class="commit-list">
+                    <!-- Commits Here -->
+                </ul>
+            </div>
+
+            <div id="revisionSection" style="margin-top: 1.5rem; display: none;">
+                <h4>Revize Tarihleri Belirle</h4>
+                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Başlangıç</label>
+                        <input type="date" id="revStartDate" class="form-control">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Bitiş</label>
+                        <input type="date" id="revEndDate" class="form-control">
+                    </div>
+                </div>
+                <button id="sendRevisionBtn" class="btn btn-danger" style="width: 100%;">Revize Talebini Gönder</button>
+                <button id="cancelRevisionBtn" class="btn" style="width: 100%; margin-top: 0.5rem; background: transparent; border: 1px solid var(--surface-border); color: white;">İptal</button>
+            </div>
+
+            <div id="actionButtons" style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button id="approveBtn" class="btn btn-success" style="flex: 1;"><i class="fas fa-check"></i> Onayla ve Öde</button>
+                <button id="requestRevisionBtn" class="btn btn-warning" style="flex: 1;"><i class="fas fa-redo"></i> Revize İste</button>
+                <button id="closeModalBtn" class="btn" style="background: transparent; border: 1px solid var(--surface-border); color: white;">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="glass-panel" style="width: 90%; max-width: 400px;">
+            <h2><i class="fas fa-user-edit"></i> Profil Bilgileri</h2>
+            
+            <form id="profileForm" style="margin-top: 1.5rem;">
+                <div class="form-group">
+                    <label>Ad Soyad / Firma Adı</label>
+                    <input type="text" id="profName" class="form-control" disabled>
+                </div>
+                <div class="form-group">
+                    <label>E-posta</label>
+                    <input type="email" id="profEmail" class="form-control" disabled>
+                </div>
+                <div class="form-group">
+                    <label>Cüzdan / IBAN</label>
+                    <input type="text" id="profWallet" class="form-control" placeholder="Örn: TR1234...">
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;"><i class="fas fa-save"></i> Kaydet</button>
+                    <button type="button" id="closeProfileBtn" class="btn" style="flex: 1; background: transparent; border: 1px solid var(--surface-border); color: white;">İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        const currentUser = UserAPI.getCurrentUser();
+        if (!currentUser || currentUser.role !== 'Employer') {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('userName').innerText = currentUser.name;
+
+        // Profile Logic
+        document.getElementById('profileBtn').addEventListener('click', () => {
+            const user = UserAPI.getCurrentUser();
+            document.getElementById('profName').value = user.name;
+            document.getElementById('profEmail').value = user.email;
+            document.getElementById('profWallet').value = user.walletAddress || '';
+            document.getElementById('profileModal').style.display = 'flex';
+        });
+
+        document.getElementById('closeProfileBtn').addEventListener('click', () => {
+            document.getElementById('profileModal').style.display = 'none';
+        });
+
+        document.getElementById('profileForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newWallet = document.getElementById('profWallet').value;
+            // API'ye kaydet
+            UserAPI.updateProfile(currentUser.id, { walletAddress: newWallet });
+            document.getElementById('profileModal').style.display = 'none';
+            alert('Profil başarıyla güncellendi.');
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            UserAPI.logout();
+            window.location.href = 'index.html';
+        });
+
+        function loadFreelancers() {
+            const select = document.getElementById('freelancerSelect');
+            const freelancers = UserAPI.getAllFreelancers();
+            freelancers.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.id;
+                opt.innerText = f.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'Assigned': return '<span class="badge badge-assigned">Atandı</span>';
+                case 'Review': return '<span class="badge badge-review">Onay Bekliyor</span>';
+                case 'Revision': return '<span class="badge badge-revision">Revizede</span>';
+                case 'Paid': return '<span class="badge badge-paid">Ödendi</span>';
+                default: return `<span class="badge">${status}</span>`;
+            }
+        }
+
+        function loadJobs() {
+            const container = document.getElementById('jobsContainer');
+            container.innerHTML = '';
+            const jobs = JobAPI.getJobsByEmployer(currentUser.id);
+            
+            let totalPaid = 0;
+            let pendingReview = 0;
+
+            jobs.reverse().forEach(job => {
+                if (job.status === 'Paid') totalPaid += parseInt(job.price);
+                if (job.status === 'Review') pendingReview++;
+
+                const f = UserAPI.getUserById(job.freelancerId);
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.background = 'rgba(15, 23, 42, 0.4)';
+                
+                let reviewBtn = '';
+                if (job.status === 'Review') {
+                    reviewBtn = `<button class="btn btn-primary" onclick="openReviewModal('${job.id}')" style="margin-top: 1rem; width: 100%;"><i class="fas fa-search"></i> İşi İncele</button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h4 style="margin: 0;">${job.title}</h4>
+                        ${getStatusBadge(job.status)}
+                    </div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        <i class="fas fa-user"></i> ${f.name} &nbsp;&nbsp; 
+                        <i class="fas fa-money-bill-wave"></i> ${job.price} ₺
+                    </div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        <i class="fab fa-github"></i> <a href="${job.githubRepoUrl}" target="_blank" style="color: var(--primary-color);">${job.githubRepoUrl}</a>
+                    </div>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem;">Teslim: ${job.dueDate}</p>
+                    ${reviewBtn}
+                `;
+                container.appendChild(card);
+            });
+
+            document.getElementById('totalPaid').innerText = totalPaid + ' ₺';
+            document.getElementById('pendingReviewCount').innerText = pendingReview;
+        }
+
+        document.getElementById('createJobForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const job = {
+                employerId: currentUser.id,
+                freelancerId: document.getElementById('freelancerSelect').value,
+                title: document.getElementById('jobTitle').value,
+                description: document.getElementById('jobDesc').value,
+                githubRepoUrl: document.getElementById('githubRepo').value,
+                price: document.getElementById('jobPrice').value,
+                dueDate: document.getElementById('jobDueDate').value
+            };
+            JobAPI.createJob(job);
+            e.target.reset();
+            loadJobs();
+        });
+
+        // Review Modal Logic
+        let currentReviewJobId = null;
+
+        function openReviewModal(jobId) {
+            currentReviewJobId = jobId;
+            const logs = CommitLogAPI.getLogsByJob(jobId);
+            const list = document.getElementById('commitLogList');
+            list.innerHTML = '';
+            
+            if (logs.length === 0) {
+                list.innerHTML = '<li class="commit-item">Henüz commit bulunamadı.</li>';
+            } else {
+                logs.forEach(log => {
+                    const timeStr = new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    list.innerHTML += `
+                        <li class="commit-item">
+                            <i class="fas fa-check-circle commit-icon"></i>
+                            <div style="flex: 1;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span class="commit-time">${timeStr}</span>
+                                    <span class="commit-hash">${log.hash}</span>
+                                </div>
+                                <div style="margin-top: 0.2rem; font-size: 0.95rem;">${log.message}</div>
+                            </div>
+                        </li>
+                    `;
+                });
+            }
+
+            document.getElementById('actionButtons').style.display = 'flex';
+            document.getElementById('revisionSection').style.display = 'none';
+            document.getElementById('reviewModal').style.display = 'flex';
+        }
+
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+            document.getElementById('reviewModal').style.display = 'none';
+        });
+
+        document.getElementById('approveBtn').addEventListener('click', () => {
+            if (currentReviewJobId) {
+                JobAPI.updateJobStatus(currentReviewJobId, 'Paid');
+                document.getElementById('reviewModal').style.display = 'none';
+                loadJobs();
+            }
+        });
+
+        document.getElementById('requestRevisionBtn').addEventListener('click', () => {
+            document.getElementById('actionButtons').style.display = 'none';
+            document.getElementById('revisionSection').style.display = 'block';
+        });
+
+        document.getElementById('cancelRevisionBtn').addEventListener('click', () => {
+            document.getElementById('actionButtons').style.display = 'flex';
+            document.getElementById('revisionSection').style.display = 'none';
+        });
+
+        document.getElementById('sendRevisionBtn').addEventListener('click', () => {
+            const start = document.getElementById('revStartDate').value;
+            const end = document.getElementById('revEndDate').value;
+            if (!start || !end) {
+                alert('Lütfen revize tarih aralığını seçin.');
+                return;
+            }
+            if (currentReviewJobId) {
+                JobAPI.updateJobStatus(currentReviewJobId, 'Revision', start, end);
+                document.getElementById('reviewModal').style.display = 'none';
+                loadJobs();
+            }
+        });
+
+        // Init
+        loadFreelancers();
+        loadJobs();
+    </script>
+</body>
+</html>
