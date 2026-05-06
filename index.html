@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowCheck - Login</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="glass-panel login-box">
+            <h1 style="text-align: center; margin-bottom: 0.5rem;">FlowCheck</h1>
+            <p style="text-align: center; margin-bottom: 2rem;">İşveren ve Freelancer Ödeme Yönetimi</p>
+            
+            <div id="loginSection">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">E-posta Adresi</label>
+                        <input type="email" id="email" class="form-control" required placeholder="ornek@mail.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Şifre</label>
+                        <input type="password" id="password" class="form-control" required placeholder="••••••">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        <i class="fas fa-sign-in-alt"></i> Sisteme Giriş Yap
+                    </button>
+                </form>
+                
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    <a href="#" id="showRegisterBtn" style="color: var(--primary-color); text-decoration: none; font-size: 0.9rem;">Hesabın yok mu? Kayıt Ol</a>
+                </div>
+                
+                <div style="margin-top: 2rem; border-top: 1px solid var(--surface-border); padding-top: 1rem;">
+                    <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">Test Hesapları:</p>
+                    <p style="font-size: 0.85rem;"><strong>Patron:</strong> patron@tech.com / 123</p>
+                    <p style="font-size: 0.85rem;"><strong>Freelancer:</strong> ali@dev.com / 123</p>
+                </div>
+            </div>
+
+            <!-- Register Section -->
+            <div id="registerSection" style="display: none;">
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="regName">Ad Soyad / Firma Adı</label>
+                        <input type="text" id="regName" class="form-control" required placeholder="Adınız">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regEmail">E-posta Adresi</label>
+                        <input type="email" id="regEmail" class="form-control" required placeholder="ornek@mail.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regPassword">Şifre</label>
+                        <input type="password" id="regPassword" class="form-control" required placeholder="••••••">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regRole">Hesap Türü</label>
+                        <select id="regRole" class="form-control" required>
+                            <option value="Employer">İşveren (Patron)</option>
+                            <option value="Freelancer">Çalışan (Freelancer)</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success" style="width: 100%;">
+                        <i class="fas fa-user-plus"></i> Kayıt Ol
+                    </button>
+                </form>
+                
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    <a href="#" id="showLoginBtn" style="color: var(--primary-color); text-decoration: none; font-size: 0.9rem;">Zaten hesabın var mı? Giriş Yap</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        // Toggle views
+        document.getElementById('showRegisterBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('registerSection').style.display = 'block';
+        });
+
+        document.getElementById('showLoginBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('registerSection').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+        });
+
+        // Login Logic
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // TODO (MSSQL Backend Integration):
+            // Backend API hazır olduğunda bu satırı aşağıdaki fetch bloğu ile değiştirin.
+            const user = UserAPI.login(email, password);
+            
+            /* MSSQL Fetch Örneği:
+            try {
+                const response = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                if (!response.ok) throw new Error('Hatalı giriş');
+                const user = await response.json();
+                localStorage.setItem('currentUser', JSON.stringify(user));
+            */
+
+            if (user) {
+                if (user.role === 'Employer') {
+                    window.location.href = 'employer.html';
+                } else if (user.role === 'Freelancer') {
+                    window.location.href = 'freelancer.html';
+                }
+            } else {
+                alert('Hatalı e-posta veya şifre!');
+            }
+            // } catch (err) { alert(err.message); } // MSSQL hata yakalama sonu
+        });
+
+        // Register Logic
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const role = document.getElementById('regRole').value;
+            // IBAN daha sonra profil ekranından girilecek.
+            const walletAddress = ""; 
+            
+            // TODO (MSSQL Backend Integration):
+            // Backend hazır olduğunda UserAPI.register yerine fetch ile POST /api/auth/register yapın.
+            const newUser = UserAPI.register({ name, email, password, role, walletAddress });
+
+            /* MSSQL Fetch Örneği:
+            try {
+                const response = await fetch('http://localhost:5000/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password, role, walletAddress: "" })
+                });
+                if (!response.ok) throw new Error('Kayıt başarısız');
+                alert('Kayıt başarılı! Lütfen giriş yapın.');
+                document.getElementById('showLoginBtn').click();
+            } catch (err) { alert(err.message); }
+            */
+
+            if (newUser) {
+                alert('Kayıt başarılı! Lütfen giriş yapın.');
+                document.getElementById('showLoginBtn').click();
+                document.getElementById('registerForm').reset();
+            } else {
+                alert('Bu e-posta zaten kullanımda!');
+            }
+        });
+    </script>
+</body>
+</html>
